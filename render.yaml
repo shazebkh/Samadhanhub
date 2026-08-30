@@ -15,13 +15,16 @@ services:
   - type: web
     name: samadhanhub
     runtime: node
+    plan: free
+    region: oregon
     rootDir: SIH
     buildCommand: npm install
     startCommand: node server.js
     envVars:
       - key: NODE_ENV
         value: production
-      - key: PORT
-        value: 10000
     healthCheckPath: /
+    healthCheckTimeout: 30
     autoDeploy: true
+    maxInstances: 1
+    minInstances: 1

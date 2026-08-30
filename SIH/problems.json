@@ -1,22 +1,5 @@
 [
   {
-    "id": "prob-icut7digv",
-    "likes": 3,
-    "dislikes": 3,
-    "suggestions": [],
-    "solved": true,
-    "timestamp": "2026-08-29T11:43:05.412Z",
-    "caption": "pothole",
-    "caption_hi": "pothole",
-    "category": "electricity",
-    "locationName": "delhi",
-    "locationName_hi": "delhi",
-    "lat": 28.48497307638121,
-    "lng": 77.5161906406472,
-    "mediaUrl": "",
-    "mediaType": "image"
-  },
-  {
     "id": "prob-ao9jchfi8",
     "likes": 1,
     "dislikes": 0,

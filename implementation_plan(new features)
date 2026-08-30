@@ -1,0 +1,118 @@
+# Admin Dashboard for SamadhanHub
+
+## Overview
+
+Add a **completely separate, protected Admin Dashboard** (`admin.html`) for SamadhanHub with its own login page, real-time problem tracking, and delete capabilities. All new code lives in **new files only** — the existing `index.html`, `app.js`, `database.js`, `index.css`, and `server.js` are **not modified**.
+
+---
+
+## User Review Required
+
+> [!IMPORTANT]
+> **No changes to existing files** — all admin functionality is isolated to new files.
+> Existing users browsing `index.html` will never see the admin panel.
+
+> [!WARNING]
+> **Plain-text credentials** — as requested, credentials are `admin.samadhan` / `1234`.
+> This is a demo implementation. For production, always hash passwords and use secure sessions.
+
+> [!NOTE]
+> The admin dashboard routes are added to the existing `server.js` through a **separate middleware file** (`admin-routes.js`) that gets `require()`-d into `server.js`. This requires **one small addition** to `server.js` — a single `require` line.
+
+---
+
+## Open Questions
+
+None — requirements are clearly specified.
+
+---
+
+## Proposed Changes
+
+### New Files (Zero existing files modified)
+
+---
+
+#### [NEW] `SIH/admin-routes.js`
+Backend Express router that adds:
+- `POST /api/admin/login` — validates username/password, issues a short-lived session token
+- `DELETE /api/admin/problems/:id` — deletes a problem (token auth required)
+- `GET /api/admin/problems` — returns all problems with extra admin metadata
+- Token is stored in-memory (`Map`) with a 4-hour expiry — no external deps needed
+
+---
+
+#### [NEW] `SIH/admin.html`
+Standalone HTML page at `/admin` route. Contains:
+1. **Login Screen** — full-page glassmorphism login form (username + password)
+2. **Admin Dashboard** (hidden until logged in) featuring:
+   - Live **stats bar** (total, critical, solved, pending)
+   - **Real-time problem feed** (polls server every 5 s)
+   - Each problem card has a **🗑️ Delete** button (admin-only)
+   - **Toggle Solved** button per card
+   - **Category filter chips**
+   - Live **"last updated"** timestamp
+   - Logout button
+3. Navigation button in the top-right that only appears on the admin page
+
+---
+
+#### [NEW] `SIH/admin.css`
+Dedicated CSS for the admin panel:
+- Premium dark glassmorphism design matching existing brand palette (`--accent-teal`, `--accent-coral`, etc.)
+- Sidebar-style admin layout with stats at the top
+- Red-tinted delete buttons with hover animation
+- Animated "LIVE" indicator badge
+- Responsive grid for problem cards
+
+---
+
+### Modified Files
+
+#### [MODIFY] [`server.js`](file:///d:/samadhanhub/SIH/server.js)
+**Only one line added** at the top of API routes section:
+```diff
++ const adminRouter = require('./admin-routes');
++ app.use('/api/admin', adminRouter);
+```
+This mounts the admin API without touching any existing routes.
+
+---
+
+## Architecture Summary
+
+```
+Browser: /admin → admin.html
+                    ↓ login form
+POST /api/admin/login → admin-routes.js → validates → returns token
+                    ↓ token stored in sessionStorage
+GET /api/admin/problems (with Bearer token) → returns all problems
+DELETE /api/admin/problems/:id (with Bearer token) → deletes problem
+                    ↓ real-time polling every 5s
+Admin dashboard auto-refreshes problem list
+```
+
+---
+
+## File List Summary
+
+| File | Status | Purpose |
+|------|--------|---------|
+| `admin.html` | **NEW** | Admin login + dashboard UI |
+| `admin.css` | **NEW** | Admin-specific styles |
+| `admin-routes.js` | **NEW** | Express router for admin API |
+| `server.js` | **MODIFIED** (+2 lines) | Mount admin router |
+
+---
+
+## Verification Plan
+
+### Manual Verification
+1. Start server: `npm start` in `SIH/`
+2. Visit `http://localhost:3000/admin` — should show login screen
+3. Enter wrong credentials — should show error
+4. Enter `admin.samadhan` / `1234` — should show dashboard
+5. Verify problem list loads with real-time refresh
+6. Delete a problem — verify it disappears from both admin and main app
+7. Visit `http://localhost:3000/` — verify main app unchanged, no admin UI visible
+8. Try accessing `/api/admin/problems` without token — should get 401
