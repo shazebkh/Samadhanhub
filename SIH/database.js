@@ -276,6 +276,24 @@ const Database = {
       return problem;
     }
     return null;
+  },
+
+  /** Hard-delete a problem report (Admin operation) */
+  async deleteProblem(problemId) {
+    if (firebaseReady) {
+      try {
+        await db.collection(COLLECTION).doc(problemId).delete();
+        return true;
+      } catch (err) {
+        console.warn('Firestore deleteProblem failed, deleting locally:', err);
+      }
+    }
+
+    // localStorage fallback
+    const problems = lsGetProblems();
+    const filtered = problems.filter(p => p.id !== problemId);
+    lsSaveProblems(filtered);
+    return true;
   }
 };
 
