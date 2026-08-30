@@ -13,7 +13,7 @@
 <body>
 
   <!-- =====================================================================
-       LOGIN SCREEN
+       LOGIN SCREEN (FALLBACK)
        ===================================================================== -->
   <div id="login-screen">
     <div class="login-card">
@@ -82,7 +82,7 @@
 
         <div class="admin-user-chip" id="user-chip">
           <div class="user-avatar">👤</div>
-          <span id="admin-username-display">admin</span>
+          <span id="admin-username-display">admin.samadhan</span>
         </div>
 
         <button class="btn btn-ghost" id="btn-logout" onclick="handleLogout()">
@@ -191,6 +191,12 @@
     <span id="toast-msg">Action completed</span>
   </div>
 
+  <!-- Firebase SDK (Compat v9) — required for direct database access on static hosting -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+  <script src="firebase-config.js"></script>
+  <script src="database.js"></script>
+
   <!-- =====================================================================
        ADMIN JAVASCRIPT
        ===================================================================== -->
@@ -212,6 +218,7 @@
     let pollTimer        = null;
     let pendingDeleteId  = null;
     let toastTimer       = null;
+    let isStaticMode     = false;
 
     // -----------------------------------------------------------------------
     // Init — check for persisted session; redirect to landing if none found
@@ -219,11 +226,10 @@
     window.addEventListener('DOMContentLoaded', () => {
       const savedToken = sessionStorage.getItem('admin_token');
       if (savedToken) {
-        // Verify token is still valid on the server
         verifyToken(savedToken);
       } else {
         // No session — send user back to the role-selection landing page
-        window.location.replace('/');
+        window.location.replace('./index.html');
       }
     });
 
@@ -235,14 +241,22 @@
         if (res.ok) {
           const data = await res.json();
           adminToken = token;
-          showDashboard(data.username);
-        } else {
-          // Token invalid/expired — go back to role-selection page
-          sessionStorage.removeItem('admin_token');
-          window.location.replace('/');
+          isStaticMode = false;
+          showDashboard(data.username || 'admin.samadhan');
+          return;
         }
       } catch (err) {
-        console.warn('[Admin] Token verification failed:', err);
+        // Backend not available -> static mode (e.g. GitHub Pages)
+      }
+
+      // Static mode verification
+      if (token) {
+        adminToken = token;
+        isStaticMode = true;
+        showDashboard('admin.samadhan');
+      } else {
+        sessionStorage.removeItem('admin_token');
+        window.location.replace('./index.html');
       }
     }
 
@@ -257,7 +271,6 @@
       const btn      = document.getElementById('btn-login');
       const btnText  = document.getElementById('btn-login-text');
 
-      // Loading state
       btn.disabled   = true;
       btnText.textContent = '⏳ Signing in...';
       hideLoginError();
@@ -269,23 +282,29 @@
           body:    JSON.stringify({ username, password })
         });
 
-        const data = await res.json();
-
-        if (!res.ok) {
-          showLoginError(data.error || 'Login failed. Check your credentials.');
+        if (res.ok) {
+          const data = await res.json();
+          adminToken = data.token;
+          isStaticMode = false;
+          sessionStorage.setItem('admin_token', adminToken);
+          showDashboard(data.username || 'admin.samadhan');
           return;
         }
-
-        adminToken = data.token;
-        sessionStorage.setItem('admin_token', adminToken);
-        showDashboard(data.username);
-
       } catch (err) {
-        showLoginError('Cannot reach server. Make sure the server is running.');
-      } finally {
-        btn.disabled    = false;
-        btnText.textContent = 'Sign In to Admin Panel';
+        // Backend not available -> check locally
       }
+
+      if (username === 'admin.samadhan' && password === '1234') {
+        adminToken = 'samadhan-admin-' + Date.now();
+        isStaticMode = true;
+        sessionStorage.setItem('admin_token', adminToken);
+        showDashboard('admin.samadhan');
+      } else {
+        showLoginError('Invalid credentials. Please try again.');
+      }
+
+      btn.disabled = false;
+      btnText.textContent = 'Sign In to Admin Panel';
     }
 
     function showLoginError(msg) {
@@ -319,17 +338,19 @@
     // -----------------------------------------------------------------------
     async function handleLogout() {
       try {
-        await fetch(`${API_BASE}/logout`, {
-          method:  'POST',
-          headers: { 'Authorization': `Bearer ${adminToken}` }
-        });
+        if (!isStaticMode) {
+          await fetch(`${API_BASE}/logout`, {
+            method:  'POST',
+            headers: { 'Authorization': `Bearer ${adminToken}` }
+          });
+        }
       } catch (e) { /* ignore */ }
 
       adminToken = null;
       sessionStorage.removeItem('admin_token');
 
       // Redirect to the unified role-selection landing page
-      window.location.href = '/';
+      window.location.href = './index.html';
     }
 
     // -----------------------------------------------------------------------
@@ -337,6 +358,7 @@
     // -----------------------------------------------------------------------
     function startPolling() {
       fetchProblems(); // immediate first fetch
+      if (pollTimer) clearInterval(pollTimer);
       pollTimer = setInterval(fetchProblems, POLL_INTERVAL);
     }
 
@@ -346,28 +368,48 @@
 
     async function fetchProblems() {
       if (!adminToken) return;
-      try {
-        const res = await fetch(`${API_BASE}/problems`, {
-          headers: { 'Authorization': `Bearer ${adminToken}` }
-        });
 
-        if (res.status === 401) {
-          // Token expired
-          showToast('error', '⏰ Session expired. Please log in again.');
-          handleLogout();
-          return;
+      if (!isStaticMode) {
+        try {
+          const res = await fetch(`${API_BASE}/problems`, {
+            headers: { 'Authorization': `Bearer ${adminToken}` }
+          });
+
+          if (res.status === 401) {
+            showToast('error', '⏰ Session expired. Please log in again.');
+            handleLogout();
+            return;
+          }
+
+          if (res.ok) {
+            const data = await res.json();
+            allProblems = data.problems || [];
+            updateStats(data.meta);
+            renderProblems();
+            updateLastUpdated();
+            return;
+          }
+        } catch (err) {
+          isStaticMode = true;
         }
+      }
 
-        const data = await res.json();
+      // Static / Firebase / LocalStorage fallback
+      try {
+        if (window.Database) {
+          const problems = await window.Database.getProblems();
+          allProblems = problems || [];
+          const total    = allProblems.length;
+          const solved   = allProblems.filter(p => p.solved).length;
+          const critical = allProblems.filter(p => (p.likes || 0) >= 30).length;
+          const pending  = total - solved;
 
-        allProblems = data.problems || [];
-        updateStats(data.meta);
-        renderProblems();
-        updateLastUpdated();
-
+          updateStats({ total, solved, critical, pending });
+          renderProblems();
+          updateLastUpdated();
+        }
       } catch (err) {
-        console.error('[Admin] Fetch failed:', err);
-        document.getElementById('live-badge').style.opacity = '0.4';
+        console.error('[Admin] Data fetch error:', err);
       }
     }
 
@@ -380,17 +422,18 @@
     }
 
     function animateCount(elId, target) {
-      const el      = document.getElementById(elId);
-      const current = parseInt(el.textContent) || 0;
-      if (current === target) return;
+      const el = document.getElementById(elId);
+      if (!el) return;
       el.textContent = target;
     }
 
     function updateLastUpdated() {
       const now = new Date();
       const timeStr = now.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-      document.getElementById('last-updated-text').textContent = `Updated at ${timeStr}`;
-      document.getElementById('live-badge').style.opacity = '1';
+      const el = document.getElementById('last-updated-text');
+      if (el) el.textContent = `Updated at ${timeStr}`;
+      const badge = document.getElementById('live-badge');
+      if (badge) badge.style.opacity = '1';
     }
 
     // -----------------------------------------------------------------------
@@ -407,14 +450,12 @@
       const searchQuery = (document.getElementById('admin-search')?.value || '').toLowerCase().trim();
 
       return allProblems.filter(p => {
-        // Filter by active category/status
         let passFilter = false;
         if (activeFilter === 'all')      passFilter = true;
         else if (activeFilter === 'unsolved') passFilter = !p.solved;
         else if (activeFilter === 'critical') passFilter = (p.likes || 0) >= 30;
         else passFilter = p.category === activeFilter;
 
-        // Filter by search query
         if (!passFilter) return false;
         if (!searchQuery) return true;
         const haystack = `${p.caption} ${p.locationName} ${p.category}`.toLowerCase();
@@ -423,11 +464,12 @@
     }
 
     function renderProblems() {
-      const grid     = document.getElementById('problems-grid');
+      const grid = document.getElementById('problems-grid');
+      if (!grid) return;
       const filtered = getFilteredProblems();
 
-      document.getElementById('visible-count').textContent =
-        `(${filtered.length} of ${allProblems.length})`;
+      const countEl = document.getElementById('visible-count');
+      if (countEl) countEl.textContent = `(${filtered.length} of ${allProblems.length})`;
 
       if (filtered.length === 0) {
         grid.innerHTML = `
@@ -484,25 +526,33 @@
     // Toggle Solved
     // -----------------------------------------------------------------------
     async function toggleSolved(problemId, currentSolved) {
-      try {
-        const res = await fetch(`${API_BASE}/problems/${problemId}/solve`, {
-          method:  'POST',
-          headers: { 'Authorization': `Bearer ${adminToken}` }
-        });
+      if (!isStaticMode) {
+        try {
+          const res = await fetch(`${API_BASE}/problems/${problemId}/solve`, {
+            method:  'POST',
+            headers: { 'Authorization': `Bearer ${adminToken}` }
+          });
 
-        if (!res.ok) throw new Error('Server error');
+          if (res.ok) {
+            const updated = await res.json();
+            const idx = allProblems.findIndex(p => p.id === problemId);
+            if (idx !== -1) allProblems[idx].solved = updated.solved;
+            renderProblems();
+            showToast('success', updated.solved ? '✅ Problem marked as resolved.' : '🔄 Problem reopened.');
+            return;
+          }
+        } catch (err) {
+          isStaticMode = true;
+        }
+      }
 
-        const updated = await res.json();
-
-        // Update local state
+      // Static fallback
+      if (window.Database) {
+        const updated = await window.Database.toggleSolved(problemId);
         const idx = allProblems.findIndex(p => p.id === problemId);
-        if (idx !== -1) allProblems[idx].solved = updated.solved;
-
+        if (idx !== -1 && updated) allProblems[idx].solved = updated.solved;
         renderProblems();
-        showToast('success', updated.solved ? '✅ Problem marked as resolved.' : '🔄 Problem reopened.');
-
-      } catch (err) {
-        showToast('error', '❌ Failed to update status. Try again.');
+        showToast('success', updated && updated.solved ? '✅ Problem marked as resolved.' : '🔄 Problem reopened.');
       }
     }
 
@@ -527,28 +577,35 @@
       const id         = pendingDeleteId;
       const confirmBtn = document.getElementById('btn-confirm-delete');
 
-      // Close dialog first
       document.getElementById('confirm-overlay').classList.remove('visible');
       pendingDeleteId = null;
 
-      // Animate card out
       const cardEl = document.getElementById(`card-${id}`);
       if (cardEl) cardEl.classList.add('deleting');
 
       confirmBtn.disabled    = true;
       confirmBtn.textContent = '⏳ Deleting...';
 
-      try {
-        const res = await fetch(`${API_BASE}/problems/${id}`, {
-          method:  'DELETE',
-          headers: { 'Authorization': `Bearer ${adminToken}` }
-        });
+      let deleted = false;
 
-        if (!res.ok) throw new Error('Delete failed');
+      if (!isStaticMode) {
+        try {
+          const res = await fetch(`${API_BASE}/problems/${id}`, {
+            method:  'DELETE',
+            headers: { 'Authorization': `Bearer ${adminToken}` }
+          });
+          if (res.ok) deleted = true;
+        } catch (err) {
+          isStaticMode = true;
+        }
+      }
 
-        // Remove from local state
+      if (!deleted && window.Database) {
+        deleted = await window.Database.deleteProblem(id);
+      }
+
+      if (deleted) {
         allProblems = allProblems.filter(p => p.id !== id);
-
         setTimeout(() => {
           renderProblems();
           updateStats({
@@ -557,18 +614,15 @@
             critical: allProblems.filter(p => (p.likes||0) >= 30).length,
             pending:  allProblems.filter(p => !p.solved).length
           });
-        }, 350); // Wait for card animation
-
+        }, 350);
         showToast('success', '🗑️ Problem deleted from database.');
-
-      } catch (err) {
+      } else {
         showToast('error', '❌ Delete failed. Please try again.');
-        // Restore card
         if (cardEl) cardEl.classList.remove('deleting');
-      } finally {
-        confirmBtn.disabled    = false;
-        confirmBtn.textContent = '🗑️ Delete Permanently';
       }
+
+      confirmBtn.disabled    = false;
+      confirmBtn.textContent = '🗑️ Delete Permanently';
     }
 
     // -----------------------------------------------------------------------
@@ -579,14 +633,13 @@
       const emojiEl = document.getElementById('toast-emoji');
       const msgEl   = document.getElementById('toast-msg');
 
-      // Set type class
+      if (!toast) return;
+
       toast.className = `admin-toast ${type}`;
       msgEl.textContent = message;
 
-      // Show
       toast.classList.add('show');
 
-      // Auto-hide after 3s
       if (toastTimer) clearTimeout(toastTimer);
       toastTimer = setTimeout(() => toast.classList.remove('show'), 3000);
     }

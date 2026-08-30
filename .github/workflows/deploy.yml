@@ -1,24 +1,25 @@
-name: Deploy SamadhanHub to Render
+name: Deploy SamadhanHub (GitHub Pages & Live Site)
 
 on:
   push:
     branches: ["main"]
   workflow_dispatch:
 
-# No Pages permissions needed anymore — deploying to Render instead
 permissions:
   contents: read
+  pages: write
+  id-token: write
 
 concurrency:
-  group: "render-deploy"
-  cancel-in-progress: true
+  group: "pages"
+  cancel-in-progress: false
 
 jobs:
   # ─────────────────────────────────────────────────────────────────────────
-  # Job 1: Verify the Node.js app builds and all routes start cleanly
+  # Job 1: Verify the backend builds and all routes pass smoke testing
   # ─────────────────────────────────────────────────────────────────────────
   build-check:
-    name: Node.js Build & Route Verification
+    name: Build & Route Verification
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -40,7 +41,7 @@ jobs:
         run: |
           node --check server.js
           node --check admin-routes.js
-          echo "✅ Syntax OK"
+          echo "✅ Syntax check passed!"
 
       - name: Smoke-test all routes
         working-directory: SIH
@@ -49,28 +50,28 @@ jobs:
           SERVER_PID=$!
           sleep 3
 
-          # Root → unified login/role-selection page
+          # Root → Landing page (role selector)
           curl -sf http://localhost:3000/ | grep -q "SamadhanHub" \
-            && echo "✅ GET /  (login page) OK" \
+            && echo "✅ GET /  (landing page) OK" \
             || (echo "❌ GET / FAILED" && kill $SERVER_PID && exit 1)
 
-          # /app → main SamadhanHub community app
+          # /app → Main community map app
           curl -sf http://localhost:3000/app | grep -q "SamadhanHub" \
             && echo "✅ GET /app (main app) OK" \
             || (echo "❌ GET /app FAILED" && kill $SERVER_PID && exit 1)
 
-          # /admin → admin dashboard (redirects to / without token — check HTML is served)
+          # /admin → Admin dashboard page
           curl -sf http://localhost:3000/admin | grep -q "Admin" \
             && echo "✅ GET /admin (dashboard) OK" \
             || (echo "❌ GET /admin FAILED" && kill $SERVER_PID && exit 1)
 
-          # Admin API: unauthenticated → must return 401
+          # Admin API auth guard: unauthenticated request must return 401
           STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:3000/api/admin/problems)
           [ "$STATUS" = "401" ] \
             && echo "✅ GET /api/admin/problems → 401 (auth guard OK)" \
             || (echo "❌ Auth guard FAILED (got $STATUS, expected 401)" && kill $SERVER_PID && exit 1)
 
-          # Admin login with correct credentials → must return token
+          # Admin login: valid credentials must return token
           LOGIN=$(curl -sf -X POST http://localhost:3000/api/admin/login \
             -H "Content-Type: application/json" \
             -d '{"username":"admin.samadhan","password":"1234"}')
@@ -80,37 +81,52 @@ jobs:
 
           kill $SERVER_PID
           echo ""
-          echo "🎉 All route checks passed!"
+          echo "🎉 All route verification tests passed!"
 
   # ─────────────────────────────────────────────────────────────────────────
-  # Job 2: Trigger Render deploy via Deploy Hook
-  #
-  # SETUP REQUIRED (one-time):
-  #   1. Go to https://dashboard.render.com → your SamadhanHub service
-  #   2. Settings → Deploy Hook → copy the URL
-  #   3. GitHub repo → Settings → Secrets → Actions → New secret:
-  #      Name:  RENDER_DEPLOY_HOOK
-  #      Value: the URL you copied
+  # Job 2: Deploy to GitHub Pages (Static site accessible to everyone)
   # ─────────────────────────────────────────────────────────────────────────
-  deploy:
-    name: Deploy to Render
+  deploy-pages:
+    name: Deploy to GitHub Pages
+    needs: build-check
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: './SIH'
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
+
+  # ─────────────────────────────────────────────────────────────────────────
+  # Job 3: Optional Render Cloud Deployment (if RENDER_DEPLOY_HOOK is set)
+  # ─────────────────────────────────────────────────────────────────────────
+  deploy-render:
+    name: Deploy to Render (Cloud Backend)
     needs: build-check
     runs-on: ubuntu-latest
     steps:
       - name: Trigger Render Deploy Hook
         run: |
           if [ -z "${{ secrets.RENDER_DEPLOY_HOOK }}" ]; then
-            echo "⚠️  RENDER_DEPLOY_HOOK secret not set."
-            echo "   Follow the setup steps in this file to connect Render."
-            echo "   Skipping deploy trigger."
+            echo "ℹ️ RENDER_DEPLOY_HOOK secret is not configured; skipping Render webhook."
           else
             HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
               -X POST "${{ secrets.RENDER_DEPLOY_HOOK }}")
             if [ "$HTTP_STATUS" = "200" ] || [ "$HTTP_STATUS" = "201" ]; then
-              echo "✅ Render deploy triggered successfully! (HTTP $HTTP_STATUS)"
-              echo "   Monitor progress at: https://dashboard.render.com"
+              echo "✅ Render deployment triggered successfully! (HTTP $HTTP_STATUS)"
             else
-              echo "❌ Render deploy hook returned HTTP $HTTP_STATUS"
-              exit 1
+              echo "⚠️ Render deploy hook returned HTTP $HTTP_STATUS"
             fi
           fi

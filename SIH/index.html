@@ -3,226 +3,627 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>SamadhanHub - Local Problem Solver for Everyone</title>
-  <meta name="description" content="A simple, graphical community platform to report, verify, and solve local problems. Connects citizens, NGOs, and government officers.">
-  
-  <!-- Leaflet Map CSS -->
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
-  
-  <!-- Custom CSS Style System -->
-  <link rel="stylesheet" href="index.css">
+  <title>SamadhanHub — Welcome</title>
+  <meta name="description" content="SamadhanHub: Community problem reporting platform. Continue as a local user or sign in as admin.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    /* ================================================================
+       Design Tokens (mirrors SamadhanHub brand palette)
+    ================================================================ */
+    :root {
+      --bg:            #060b13;
+      --card:          rgba(17, 25, 40, 0.82);
+      --card-hover:    rgba(24, 36, 58, 0.92);
+      --border:        rgba(255, 255, 255, 0.08);
+      --border-teal:   rgba(20, 184, 166, 0.40);
+      --border-coral:  rgba(255, 127, 80, 0.40);
+      --teal:          #14b8a6;
+      --teal-dim:      rgba(20, 184, 166, 0.14);
+      --coral:         #ff7f50;
+      --coral-dim:     rgba(255, 127, 80, 0.14);
+      --yellow:        #fbbf24;
+      --green:         #10b981;
+      --red:           #ef4444;
+      --red-dim:       rgba(239, 68, 68, 0.14);
+      --text:          #f3f4f6;
+      --text-sec:      #9ca3af;
+      --text-muted:    #6b7280;
+      --font:          'Outfit', sans-serif;
+      --r-lg:          24px;
+      --r-md:          16px;
+      --r-sm:          10px;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: var(--font);
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      overflow-x: hidden;
+      position: relative;
+    }
+
+    /* Animated radial background blobs */
+    body::before, body::after {
+      content: '';
+      position: fixed;
+      border-radius: 50%;
+      filter: blur(80px);
+      pointer-events: none;
+      z-index: 0;
+    }
+    body::before {
+      width: 600px; height: 600px;
+      top: -120px; left: -120px;
+      background: radial-gradient(circle, rgba(20,184,166,0.12) 0%, transparent 70%);
+      animation: blobMove 12s ease-in-out infinite alternate;
+    }
+    body::after {
+      width: 500px; height: 500px;
+      bottom: -100px; right: -100px;
+      background: radial-gradient(circle, rgba(255,127,80,0.10) 0%, transparent 70%);
+      animation: blobMove 15s ease-in-out infinite alternate-reverse;
+    }
+    @keyframes blobMove {
+      from { transform: translate(0, 0) scale(1); }
+      to   { transform: translate(40px, 30px) scale(1.08); }
+    }
+
+    /* Subtle grid overlay */
+    .grid-bg {
+      position: fixed;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(20,184,166,0.025) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(20,184,166,0.025) 1px, transparent 1px);
+      background-size: 44px 44px;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* ================================================================
+       Layout
+    ================================================================ */
+    .page {
+      position: relative;
+      z-index: 1;
+      width: 100%;
+      max-width: 900px;
+      padding: 2rem 1.5rem;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2.5rem;
+    }
+
+    /* ---- Brand header ---- */
+    .brand {
+      text-align: center;
+      animation: fadeDown 0.7s ease both;
+    }
+
+    .brand-icon {
+      font-size: 4rem;
+      display: block;
+      margin-bottom: 0.6rem;
+      filter: drop-shadow(0 0 24px rgba(20,184,166,0.55));
+      animation: floatIcon 4s ease-in-out infinite;
+    }
+
+    @keyframes floatIcon {
+      0%,100% { transform: translateY(0); }
+      50%      { transform: translateY(-8px); }
+    }
+
+    .brand h1 {
+      font-size: clamp(2rem, 5vw, 3rem);
+      font-weight: 800;
+      background: linear-gradient(135deg, var(--teal) 0%, #38bdf8 50%, var(--coral) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      letter-spacing: -1px;
+      line-height: 1.1;
+    }
+
+    .brand p {
+      margin-top: 0.6rem;
+      color: var(--text-sec);
+      font-size: 1.05rem;
+      font-weight: 400;
+    }
+
+    .brand-badges {
+      margin-top: 1rem;
+      display: flex;
+      justify-content: center;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+    }
+
+    .badge {
+      font-size: 0.7rem;
+      font-weight: 700;
+      letter-spacing: 0.8px;
+      text-transform: uppercase;
+      padding: 0.25rem 0.75rem;
+      border-radius: 999px;
+      border: 1px solid;
+    }
+    .badge-teal  { background: var(--teal-dim);  border-color: var(--border-teal);  color: var(--teal); }
+    .badge-coral { background: var(--coral-dim); border-color: var(--border-coral); color: var(--coral); }
+
+    /* ================================================================
+       Role Cards Grid
+    ================================================================ */
+    .roles-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1.5rem;
+      width: 100%;
+      animation: fadeUp 0.7s 0.15s ease both;
+    }
+
+    @keyframes fadeDown {
+      from { opacity: 0; transform: translateY(-20px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(24px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ---- Single role card ---- */
+    .role-card {
+      background: var(--card);
+      border-radius: var(--r-lg);
+      border: 1px solid var(--border);
+      backdrop-filter: blur(20px);
+      overflow: hidden;
+      transition: transform 0.25s, box-shadow 0.25s, border-color 0.25s;
+      position: relative;
+      cursor: default;
+    }
+
+    .role-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 3px;
+    }
+
+    .role-card.local::before {
+      background: linear-gradient(90deg, var(--teal), #38bdf8, transparent);
+    }
+    .role-card.admin::before {
+      background: linear-gradient(90deg, var(--coral), var(--yellow), transparent);
+    }
+
+    .role-card:hover {
+      transform: translateY(-4px);
+    }
+    .role-card.local:hover  { border-color: var(--border-teal);  box-shadow: 0 0 32px rgba(20,184,166,0.18); }
+    .role-card.admin:hover  { border-color: var(--border-coral); box-shadow: 0 0 32px rgba(255,127,80,0.18); }
+
+    .card-inner {
+      padding: 2rem 1.75rem;
+    }
+
+    .card-icon {
+      font-size: 2.8rem;
+      margin-bottom: 1rem;
+      display: block;
+      transition: transform 0.3s;
+    }
+    .role-card:hover .card-icon { transform: scale(1.1) rotate(-4deg); }
+
+    .card-title {
+      font-size: 1.3rem;
+      font-weight: 800;
+      margin-bottom: 0.4rem;
+      letter-spacing: -0.3px;
+    }
+    .local .card-title { color: var(--teal); }
+    .admin .card-title { color: var(--coral); }
+
+    .card-desc {
+      font-size: 0.88rem;
+      color: var(--text-sec);
+      line-height: 1.6;
+      margin-bottom: 1.25rem;
+    }
+
+    .card-features {
+      list-style: none;
+      margin-bottom: 1.5rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.4rem;
+    }
+
+    .card-features li {
+      font-size: 0.82rem;
+      color: var(--text-sec);
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .feat-dot {
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    .local  .feat-dot { background: var(--teal); }
+    .admin  .feat-dot { background: var(--coral); }
+
+    /* ---- Primary CTA button ---- */
+    .btn-role {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      width: 100%;
+      padding: 0.8rem 1rem;
+      border: none;
+      border-radius: var(--r-md);
+      font-family: var(--font);
+      font-size: 0.95rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: transform 0.15s, box-shadow 0.2s;
+    }
+    .btn-role:active { transform: scale(0.97); }
+
+    .btn-local {
+      background: linear-gradient(135deg, var(--teal), #38bdf8);
+      color: #fff;
+      box-shadow: 0 4px 20px rgba(20,184,166,0.30);
+    }
+    .btn-local:hover { box-shadow: 0 6px 30px rgba(20,184,166,0.50); transform: translateY(-1px); }
+
+    .btn-admin {
+      background: linear-gradient(135deg, var(--coral), var(--yellow));
+      color: #1a0a00;
+      box-shadow: 0 4px 20px rgba(255,127,80,0.28);
+    }
+    .btn-admin:hover { box-shadow: 0 6px 30px rgba(255,127,80,0.45); transform: translateY(-1px); }
+
+    /* ================================================================
+       Admin Login Form (inline, slides in below the button)
+    ================================================================ */
+    .admin-login-form {
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.45s cubic-bezier(0.4, 0, 0.2, 1),
+                  opacity 0.35s ease,
+                  padding 0.35s ease;
+      opacity: 0;
+      padding: 0 1.75rem;
+      border-top: 0px solid var(--border);
+    }
+
+    .admin-login-form.open {
+      max-height: 340px;
+      opacity: 1;
+      padding: 1.25rem 1.75rem 1.75rem;
+      border-top: 1px solid rgba(255,127,80,0.15);
+    }
+
+    .form-sep {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      margin-bottom: 1rem;
+    }
+    .form-sep-line { flex: 1; height: 1px; background: var(--border); }
+    .form-sep-text { font-size: 0.72rem; color: var(--text-muted); letter-spacing: 0.5px; white-space: nowrap; }
+
+    .form-field { margin-bottom: 0.9rem; }
+
+    .form-field label {
+      display: block;
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.7px;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin-bottom: 0.4rem;
+    }
+
+    .form-field input {
+      width: 100%;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid var(--border);
+      border-radius: var(--r-sm);
+      padding: 0.65rem 0.9rem;
+      color: var(--text);
+      font-family: var(--font);
+      font-size: 0.9rem;
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+
+    .form-field input:focus {
+      border-color: var(--coral);
+      box-shadow: 0 0 0 3px rgba(255,127,80,0.15);
+    }
+    .form-field input::placeholder { color: var(--text-muted); }
+
+    .login-error-inline {
+      display: none;
+      align-items: center;
+      gap: 0.4rem;
+      background: var(--red-dim);
+      border: 1px solid rgba(239,68,68,0.3);
+      color: #fca5a5;
+      border-radius: var(--r-sm);
+      padding: 0.5rem 0.75rem;
+      font-size: 0.8rem;
+      margin-bottom: 0.9rem;
+      animation: shake 0.4s ease;
+    }
+    .login-error-inline.show { display: flex; }
+
+    @keyframes shake {
+      0%,100% { transform: translateX(0); }
+      20%      { transform: translateX(-5px); }
+      40%      { transform: translateX(5px); }
+      60%      { transform: translateX(-3px); }
+      80%      { transform: translateX(3px); }
+    }
+
+    .btn-signin {
+      width: 100%;
+      padding: 0.7rem;
+      border: none;
+      border-radius: var(--r-sm);
+      background: linear-gradient(135deg, var(--coral), var(--yellow));
+      color: #1a0a00;
+      font-family: var(--font);
+      font-size: 0.9rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: transform 0.15s, box-shadow 0.2s, opacity 0.2s;
+    }
+    .btn-signin:hover   { box-shadow: 0 4px 20px rgba(255,127,80,0.4); }
+    .btn-signin:active  { transform: scale(0.97); }
+    .btn-signin:disabled { opacity: 0.55; cursor: not-allowed; }
+
+    /* ================================================================
+       Footer
+    ================================================================ */
+    .footer {
+      color: var(--text-muted);
+      font-size: 0.78rem;
+      text-align: center;
+      animation: fadeUp 0.7s 0.3s ease both;
+    }
+
+    .footer a { color: var(--teal); text-decoration: none; }
+    .footer a:hover { text-decoration: underline; }
+
+    /* ================================================================
+       Responsive
+    ================================================================ */
+    @media (max-width: 620px) {
+      .roles-grid { grid-template-columns: 1fr; }
+      .brand h1 { font-size: 2rem; }
+    }
+  </style>
 </head>
-<body class="lang-en">
+<body>
+  <div class="grid-bg"></div>
 
-  <!-- Header -->
-  <header>
-    <div class="logo-container">
-      <div class="logo-icon">🤝</div>
-      <div class="logo-text" id="app-logo-text">SamadhanHub</div>
-    </div>
-    
-    <div class="header-controls">
-      <!-- Language Switch Toggle -->
-      <div class="lang-toggle" id="lang-toggle-btn" role="button" aria-label="Toggle Language" onclick="toggleLanguage()">
-        <span class="lang-btn lang-btn-en">EN</span>
-        <span class="lang-btn lang-btn-hi">हिं</span>
+  <div class="page">
+
+    <!-- Brand Header -->
+    <div class="brand">
+      <span class="brand-icon">🤝</span>
+      <h1>SamadhanHub</h1>
+      <p>Local Problem Solver for Everyone</p>
+      <div class="brand-badges">
+        <span class="badge badge-teal">🌐 Community Platform</span>
+        <span class="badge badge-coral">🔐 Secure Admin Access</span>
       </div>
-      
-      <!-- Report Button -->
-      <button class="btn-primary" id="btn-add-problem" onclick="openReportModal()">
-        <span class="btn-icon">➕</span>
-        <span id="btn-add-text">Report Problem</span>
-      </button>
-
-      <!-- Exit / Back to Home -->
-      <a href="/"
-         id="btn-exit-app"
-         title="Back to Home"
-         style="
-           display: inline-flex;
-           align-items: center;
-           gap: 0.4rem;
-           padding: 0.55rem 1rem;
-           border-radius: var(--border-radius-md);
-           border: 1px solid var(--border-color);
-           background: transparent;
-           color: var(--text-secondary);
-           font-family: inherit;
-           font-size: 0.85rem;
-           font-weight: 600;
-           text-decoration: none;
-           cursor: pointer;
-           transition: color 0.2s, border-color 0.2s, background 0.2s;
-           white-space: nowrap;
-         "
-         onmouseover="this.style.color='var(--accent-teal)';this.style.borderColor='rgba(20,184,166,0.4)';this.style.background='rgba(20,184,166,0.08)'"
-         onmouseout="this.style.color='var(--text-secondary)';this.style.borderColor='var(--border-color)';this.style.background='transparent'"
-      >
-        🚪 <span>Exit</span>
-      </a>
     </div>
 
-  </header>
+    <!-- Role Selection Cards -->
+    <div class="roles-grid">
 
-  <!-- Dashboard Container -->
-  <main class="dashboard">
-    
-    <!-- Left Panel: Categories & Map -->
-    <section class="left-panel">
-      
-      <!-- Category Selector Scroll Slider -->
-      <div class="category-container">
-        <div class="category-title">
-          <span id="txt-select-category">Category Filter</span>
-          <span id="txt-selected-count">All categories selected</span>
-        </div>
-        <div class="category-slider" id="category-list">
-          <!-- Dynamically populated categories -->
+      <!-- ── Local User ─────────────────────────────────────── -->
+      <div class="role-card local">
+        <div class="card-inner">
+          <span class="card-icon">🧑‍🤝‍🧑</span>
+          <div class="card-title">Continue as Local</div>
+          <p class="card-desc">
+            Browse, report, and vote on community problems in your area. No account needed.
+          </p>
+          <ul class="card-features">
+            <li><span class="feat-dot"></span> View all reported problems on the map</li>
+            <li><span class="feat-dot"></span> Report a new local problem instantly</li>
+            <li><span class="feat-dot"></span> Vote &amp; add suggestions to issues</li>
+            <li><span class="feat-dot"></span> Filter by category, see real-time updates</li>
+          </ul>
+          <button class="btn-role btn-local" onclick="goLocal()" id="btn-go-local">
+            🚀 Enter as Local User
+          </button>
         </div>
       </div>
-      
-      <!-- Map Integration Area -->
-      <div class="map-wrapper">
-        <div class="map-header">
-          <div class="map-title">
-            <span>🗺️</span>
-            <span id="txt-map-title">Nearby Problems Map</span>
-          </div>
-          <!-- Location Search -->
-          <div class="map-search-bar">
-            <input type="text" id="map-search-input" placeholder="Search near you...">
-            <button onclick="searchLocation()" id="btn-map-search">🔍</button>
-          </div>
-          <!-- Maximize / Minimize Button -->
-          <button id="btn-map-toggle" onclick="toggleMapMaximize()" class="map-toggle-btn" title="Toggle Maximize">⛶</button>
-        </div>
-        
-        <!-- Leaflet Map Container -->
-        <div id="map"></div>
-      </div>
-      
-    </section>
 
-    <!-- Right Panel: Timeline Feed & Stats Dashboard -->
-    <section class="right-panel">
-      
-      <!-- Officer & NGO Dashboard Section -->
-      <div class="officer-dashboard">
-        <div class="category-title" id="txt-ngo-dashboard-title">NGO & Officer Control Room</div>
-        <div class="stats-grid">
-          <div class="stat-card">
-            <div class="stat-val blue" id="stat-total-reported">0</div>
-            <div class="stat-lbl" id="lbl-total-reported">Reported</div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-val pink" id="stat-high-priority">0</div>
-            <div class="stat-lbl" id="lbl-high-priority">Critical</div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-val green" id="stat-total-solved">0</div>
-            <div class="stat-lbl" id="lbl-total-solved">Solved</div>
-          </div>
-        </div>
-      </div>
-      
-      <!-- Timeline Header -->
-      <div class="feed-header">
-        <div class="feed-title">
-          <span id="txt-timeline-title">Problems Timeline</span>
-          <span id="problems-count-badge">0</span>
-        </div>
-      </div>
-      
-      <!-- Timeline Cards Feed -->
-      <div class="timeline-container" id="timeline-feed">
-        <!-- Dynamically populated cards -->
-      </div>
-      
-    </section>
-  </main>
-
-  <!-- Problem Reporting Modal Dialog -->
-  <div class="modal-overlay" id="report-modal" onclick="closeModalOnOverlay(event)">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h2 class="modal-title" id="txt-modal-title">Share a Local Problem</h2>
-        <button class="modal-close" onclick="closeReportModal()">✕</button>
-      </div>
-      
-      <form id="problem-form" onsubmit="handleProblemSubmit(event)">
-        <!-- Caption -->
-        <div class="form-group">
-          <label for="form-caption" id="lbl-form-caption">Describe the Problem (Write a Caption)</label>
-          <textarea id="form-caption" rows="3" placeholder="What's happening? E.g., Broken water pipeline leaking water..." required></textarea>
-        </div>
-        
-        <!-- Category & Location Coordinates -->
-        <div class="form-row">
-          <div class="form-group">
-            <label for="form-category" id="lbl-form-category">Category</label>
-            <select id="form-category" required>
-              <!-- Populated via script translation -->
-            </select>
-          </div>
-          
-          <div class="form-group">
-            <label for="form-location-name" id="lbl-form-location">Location/Area Name</label>
-            <input type="text" id="form-location-name" placeholder="E.g., Sector 4 Main Road" required>
-          </div>
+      <!-- ── Admin ──────────────────────────────────────────── -->
+      <div class="role-card admin" id="admin-card">
+        <div class="card-inner">
+          <span class="card-icon">🛡️</span>
+          <div class="card-title">Login as Admin</div>
+          <p class="card-desc">
+            Access the control room. Manage all reports, resolve issues, and delete invalid entries.
+          </p>
+          <ul class="card-features">
+            <li><span class="feat-dot"></span> Real-time problem monitoring dashboard</li>
+            <li><span class="feat-dot"></span> Delete invalid or resolved reports</li>
+            <li><span class="feat-dot"></span> Mark problems as solved / reopen cases</li>
+            <li><span class="feat-dot"></span> Live stats: total, critical, pending</li>
+          </ul>
+          <button class="btn-role btn-admin" onclick="toggleAdminForm()" id="btn-admin-toggle">
+            🔐 Login as Admin
+          </button>
         </div>
 
-        <!-- Coordinates (Hidden or Auto-calculated) -->
-        <input type="hidden" id="form-lat">
-        <input type="hidden" id="form-lng">
-        <div class="map-select-hint">
-          <span>📍</span>
-          <span id="txt-coords-hint">Auto-picked from map (or click map before saving)</span>
-        </div>
-        
-        <!-- File upload & presets -->
-        <div class="form-group">
-          <label id="lbl-form-media">Upload Photo/Video or Choose a Preset Graphic</label>
-          <div class="file-upload-box" onclick="triggerFileInput()">
-            <div class="file-upload-icon">📷</div>
-            <div class="file-upload-text" id="txt-file-upload">Click here to upload file</div>
-            <input type="file" id="form-file-input" accept="image/*,video/*" style="display:none" onchange="handleFileChange(event)">
+        <!-- Inline admin login form -->
+        <div class="admin-login-form" id="admin-form">
+          <div class="form-sep">
+            <span class="form-sep-line"></span>
+            <span class="form-sep-text">Enter Admin Credentials</span>
+            <span class="form-sep-line"></span>
           </div>
-          
-          <!-- Toddler Friendly Preset choices to save time/provide free visual data -->
-          <div class="preset-drawings" id="preset-list">
-            <!-- Populated via JS scripts -->
-          </div>
-          <input type="hidden" id="form-preset-url">
-        </div>
 
-        <button type="submit" class="btn-primary" style="width: 100%; justify-content: center; margin-top: 1rem;" id="btn-submit-problem">
-          Submit Report 📢
-        </button>
-      </form>
+          <div class="login-error-inline" id="inline-error">
+            <span>⚠️</span>
+            <span id="inline-error-msg">Invalid credentials. Try again.</span>
+          </div>
+
+          <form onsubmit="handleAdminLogin(event)">
+            <div class="form-field">
+              <label for="admin-user">Username</label>
+              <input
+                type="text"
+                id="admin-user"
+                placeholder="admin.samadhan"
+                autocomplete="username"
+                required
+              >
+            </div>
+            <div class="form-field">
+              <label for="admin-pass">Password</label>
+              <input
+                type="password"
+                id="admin-pass"
+                placeholder="••••••"
+                autocomplete="current-password"
+                required
+              >
+            </div>
+            <button type="submit" class="btn-signin" id="btn-signin" >
+              🔑 Sign In to Admin Panel
+            </button>
+          </form>
+        </div>
+      </div>
+
     </div>
+
+    <!-- Footer -->
+    <div class="footer">
+      SamadhanHub &mdash; A Smart India Hackathon Community Initiative &nbsp;·&nbsp;
+      <a href="./app.html">Go directly to app →</a>
+    </div>
+
   </div>
 
-  <!-- Toddler Feedback Toast Alert -->
-  <div class="toast" id="toast-message">
-    <span class="toast-emoji">🎉</span>
-    <span id="toast-text">Problem posted successfully!</span>
-  </div>
+  <script>
+    'use strict';
 
-  <!-- Leaflet Map JS -->
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
-  
-  <!-- Lucide Icons for clean visuals -->
-  <script src="https://unpkg.com/lucide@latest"></script>
+    // Navigate to the local user app
+    function goLocal() {
+      const btn = document.getElementById('btn-go-local');
+      btn.textContent = '⏳ Loading...';
+      btn.disabled = true;
+      window.location.href = './app.html';
+    }
 
-  <!-- Firebase SDK (Compat v9) — required for shared Firestore database -->
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+    // Toggle the inline admin form
+    let formOpen = false;
+    function toggleAdminForm() {
+      const form    = document.getElementById('admin-form');
+      const btn     = document.getElementById('btn-admin-toggle');
+      formOpen = !formOpen;
 
-  <!-- Firebase Project Config (fill in firebase-config.js to activate cloud DB) -->
-  <script src="firebase-config.js"></script>
+      if (formOpen) {
+        form.classList.add('open');
+        btn.textContent  = '✕ Cancel';
+        btn.style.background = 'rgba(255,127,80,0.15)';
+        btn.style.color      = 'var(--coral)';
+        btn.style.boxShadow  = 'none';
+        btn.style.border     = '1px solid rgba(255,127,80,0.35)';
+        setTimeout(() => document.getElementById('admin-user').focus(), 350);
+      } else {
+        form.classList.remove('open');
+        btn.style.cssText = '';
+        btn.textContent  = '🔐 Login as Admin';
+        hideInlineError();
+      }
+    }
 
-  <!-- Core Application Scripts -->
-  <script src="database.js"></script>
-  <script src="app.js"></script>
+    // Authenticate admin and redirect
+    async function handleAdminLogin(event) {
+      event.preventDefault();
+
+      const username = document.getElementById('admin-user').value.trim();
+      const password = document.getElementById('admin-pass').value;
+      const btn      = document.getElementById('btn-signin');
+
+      btn.disabled    = true;
+      btn.textContent = '⏳ Signing in...';
+      hideInlineError();
+
+      // Check if backend API is available
+      try {
+        const res = await fetch('/api/admin/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username, password })
+        });
+
+        if (res.ok) {
+          const data = await res.json();
+          sessionStorage.setItem('admin_token', data.token);
+          btn.textContent = '✅ Redirecting...';
+          window.location.href = './admin.html';
+          return;
+        } else if (res.status === 401) {
+          showInlineError('Invalid credentials.');
+          btn.disabled = false;
+          btn.textContent = '🔑 Sign In to Admin Panel';
+          return;
+        }
+      } catch (err) {
+        // Static hosting fallback (e.g. GitHub Pages)
+      }
+
+      // Static client-side validation fallback for GitHub Pages
+      if (username === 'admin.samadhan' && password === '1234') {
+        const mockToken = 'samadhan-admin-' + Date.now();
+        sessionStorage.setItem('admin_token', mockToken);
+        btn.textContent = '✅ Redirecting...';
+        window.location.href = './admin.html';
+      } else {
+        showInlineError('Invalid credentials.');
+        btn.disabled = false;
+        btn.textContent = '🔑 Sign In to Admin Panel';
+      }
+    }
+
+    function showInlineError(msg) {
+      const el = document.getElementById('inline-error');
+      document.getElementById('inline-error-msg').textContent = msg;
+      el.classList.remove('show');
+      void el.offsetWidth;
+      el.classList.add('show');
+    }
+
+    function hideInlineError() {
+      document.getElementById('inline-error').classList.remove('show');
+    }
+  </script>
 </body>
 </html>

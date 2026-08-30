@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SamadhanHub - Local Problem Solver for Everyone</title>
+  <meta name="description" content="A simple, graphical community platform to report, verify, and solve local problems. Connects citizens, NGOs, and government officers.">
+  
+  <!-- Leaflet Map CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+  
+  <!-- Custom CSS Style System -->
+  <link rel="stylesheet" href="index.css">
+</head>
+<body class="lang-en">
+
+  <!-- Header -->
+  <header>
+    <div class="logo-container">
+      <div class="logo-icon">🤝</div>
+      <div class="logo-text" id="app-logo-text">SamadhanHub</div>
+    </div>
+    
+    <div class="header-controls">
+      <!-- Language Switch Toggle -->
+      <div class="lang-toggle" id="lang-toggle-btn" role="button" aria-label="Toggle Language" onclick="toggleLanguage()">
+        <span class="lang-btn lang-btn-en">EN</span>
+        <span class="lang-btn lang-btn-hi">हिं</span>
+      </div>
+      
+      <!-- Report Button -->
+      <button class="btn-primary" id="btn-add-problem" onclick="openReportModal()">
+        <span class="btn-icon">➕</span>
+        <span id="btn-add-text">Report Problem</span>
+      </button>
+
+      <!-- Exit / Back to Home -->
+      <a href="./index.html"
+         id="btn-exit-app"
+         title="Back to Home"
+         style="
+           display: inline-flex;
+           align-items: center;
+           gap: 0.4rem;
+           padding: 0.55rem 1rem;
+           border-radius: var(--border-radius-md);
+           border: 1px solid var(--border-color);
+           background: transparent;
+           color: var(--text-secondary);
+           font-family: inherit;
+           font-size: 0.85rem;
+           font-weight: 600;
+           text-decoration: none;
+           cursor: pointer;
+           transition: color 0.2s, border-color 0.2s, background 0.2s;
+           white-space: nowrap;
+         "
+         onmouseover="this.style.color='var(--accent-teal)';this.style.borderColor='rgba(20,184,166,0.4)';this.style.background='rgba(20,184,166,0.08)'"
+         onmouseout="this.style.color='var(--text-secondary)';this.style.borderColor='var(--border-color)';this.style.background='transparent'"
+      >
+        🚪 <span>Exit</span>
+      </a>
+    </div>
+
+  </header>
+
+  <!-- Dashboard Container -->
+  <main class="dashboard">
+    
+    <!-- Left Panel: Categories & Map -->
+    <section class="left-panel">
+      
+      <!-- Category Selector Scroll Slider -->
+      <div class="category-container">
+        <div class="category-title">
+          <span id="txt-select-category">Category Filter</span>
+          <span id="txt-selected-count">All categories selected</span>
+        </div>
+        <div class="category-slider" id="category-list">
+          <!-- Dynamically populated categories -->
+        </div>
+      </div>
+      
+      <!-- Map Integration Area -->
+      <div class="map-wrapper">
+        <div class="map-header">
+          <div class="map-title">
+            <span>🗺️</span>
+            <span id="txt-map-title">Nearby Problems Map</span>
+          </div>
+          <!-- Location Search -->
+          <div class="map-search-bar">
+            <input type="text" id="map-search-input" placeholder="Search near you...">
+            <button onclick="searchLocation()" id="btn-map-search">🔍</button>
+          </div>
+          <!-- Maximize / Minimize Button -->
+          <button id="btn-map-toggle" onclick="toggleMapMaximize()" class="map-toggle-btn" title="Toggle Maximize">⛶</button>
+        </div>
+        
+        <!-- Leaflet Map Container -->
+        <div id="map"></div>
+      </div>
+      
+    </section>
+
+    <!-- Right Panel: Timeline Feed & Stats Dashboard -->
+    <section class="right-panel">
+      
+      <!-- Officer & NGO Dashboard Section -->
+      <div class="officer-dashboard">
+        <div class="category-title" id="txt-ngo-dashboard-title">NGO & Officer Control Room</div>
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-val blue" id="stat-total-reported">0</div>
+            <div class="stat-lbl" id="lbl-total-reported">Reported</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-val pink" id="stat-high-priority">0</div>
+            <div class="stat-lbl" id="lbl-high-priority">Critical</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-val green" id="stat-total-solved">0</div>
+            <div class="stat-lbl" id="lbl-total-solved">Solved</div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Timeline Header -->
+      <div class="feed-header">
+        <div class="feed-title">
+          <span id="txt-timeline-title">Problems Timeline</span>
+          <span id="problems-count-badge">0</span>
+        </div>
+      </div>
+      
+      <!-- Timeline Cards Feed -->
+      <div class="timeline-container" id="timeline-feed">
+        <!-- Dynamically populated cards -->
+      </div>
+      
+    </section>
+  </main>
+
+  <!-- Problem Reporting Modal Dialog -->
+  <div class="modal-overlay" id="report-modal" onclick="closeModalOnOverlay(event)">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2 class="modal-title" id="txt-modal-title">Share a Local Problem</h2>
+        <button class="modal-close" onclick="closeReportModal()">✕</button>
+      </div>
+      
+      <form id="problem-form" onsubmit="handleProblemSubmit(event)">
+        <!-- Caption -->
+        <div class="form-group">
+          <label for="form-caption" id="lbl-form-caption">Describe the Problem (Write a Caption)</label>
+          <textarea id="form-caption" rows="3" placeholder="What's happening? E.g., Broken water pipeline leaking water..." required></textarea>
+        </div>
+        
+        <!-- Category & Location Coordinates -->
+        <div class="form-row">
+          <div class="form-group">
+            <label for="form-category" id="lbl-form-category">Category</label>
+            <select id="form-category" required>
+              <!-- Populated via script translation -->
+            </select>
+          </div>
+          
+          <div class="form-group">
+            <label for="form-location-name" id="lbl-form-location">Location/Area Name</label>
+            <input type="text" id="form-location-name" placeholder="E.g., Sector 4 Main Road" required>
+          </div>
+        </div>
+
+        <!-- Coordinates (Hidden or Auto-calculated) -->
+        <input type="hidden" id="form-lat">
+        <input type="hidden" id="form-lng">
+        <div class="map-select-hint">
+          <span>📍</span>
+          <span id="txt-coords-hint">Auto-picked from map (or click map before saving)</span>
+        </div>
+        
+        <!-- File upload & presets -->
+        <div class="form-group">
+          <label id="lbl-form-media">Upload Photo/Video or Choose a Preset Graphic</label>
+          <div class="file-upload-box" onclick="triggerFileInput()">
+            <div class="file-upload-icon">📷</div>
+            <div class="file-upload-text" id="txt-file-upload">Click here to upload file</div>
+            <input type="file" id="form-file-input" accept="image/*,video/*" style="display:none" onchange="handleFileChange(event)">
+          </div>
+          
+          <!-- Toddler Friendly Preset choices to save time/provide free visual data -->
+          <div class="preset-drawings" id="preset-list">
+            <!-- Populated via JS scripts -->
+          </div>
+          <input type="hidden" id="form-preset-url">
+        </div>
+
+        <button type="submit" class="btn-primary" style="width: 100%; justify-content: center; margin-top: 1rem;" id="btn-submit-problem">
+          Submit Report 📢
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Toddler Feedback Toast Alert -->
+  <div class="toast" id="toast-message">
+    <span class="toast-emoji">🎉</span>
+    <span id="toast-text">Problem posted successfully!</span>
+  </div>
+
+  <!-- Leaflet Map JS -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+  
+  <!-- Lucide Icons for clean visuals -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <!-- Firebase SDK (Compat v9) — required for shared Firestore database -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+
+  <!-- Firebase Project Config (fill in firebase-config.js to activate cloud DB) -->
+  <script src="firebase-config.js"></script>
+
+  <!-- Core Application Scripts -->
+  <script src="database.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

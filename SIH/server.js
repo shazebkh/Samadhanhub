@@ -20,21 +20,20 @@ app.use('/api/admin', adminRouter);
 
 // Unified entry point: role selector (local user vs admin)
 app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, 'login.html'));
-});
-
-// Main SamadhanHub community app
-app.get('/app', (req, res) => {
   res.sendFile(path.join(__dirname, 'index.html'));
 });
 
+// Main SamadhanHub community app
+app.get(['/app', '/app.html'], (req, res) => {
+  res.sendFile(path.join(__dirname, 'app.html'));
+});
+
 // Admin dashboard page
-app.get('/admin', (req, res) => {
+app.get(['/admin', '/admin.html'], (req, res) => {
   res.sendFile(path.join(__dirname, 'admin.html'));
 });
 
-// Serve all other static assets (CSS, JS, images, etc.) — index:false prevents
-// express from auto-serving index.html at /
+// Serve all other static assets (CSS, JS, images, etc.)
 app.use(express.static(__dirname, { index: false }));
 
 // Seed problems if DB file doesn't exist
