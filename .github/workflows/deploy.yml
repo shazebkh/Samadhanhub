@@ -1,4 +1,4 @@
-name: Deploy static content to Pages
+name: Deploy SamadhanHub (Node.js + Admin Dashboard)
 
 on:
   push:
@@ -15,7 +15,52 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  # ─────────────────────────────────────────────────────────────────────────
+  # Job 1: Verify the Node.js backend builds and starts cleanly
+  # ─────────────────────────────────────────────────────────────────────────
+  build-check:
+    name: Node.js Backend Verification
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: SIH/package-lock.json
+
+      - name: Install dependencies
+        working-directory: SIH
+        run: npm install
+
+      - name: Verify server syntax
+        working-directory: SIH
+        run: node --check server.js && node --check admin-routes.js
+        
+      - name: Smoke-test server startup
+        working-directory: SIH
+        run: |
+          node server.js &
+          SERVER_PID=$!
+          sleep 3
+          curl -sf http://localhost:3000/ | grep -q "SamadhanHub" && echo "✅ Root (login page) OK"
+          curl -sf http://localhost:3000/app  | grep -q "SamadhanHub" && echo "✅ /app (main app) OK"
+          curl -sf http://localhost:3000/admin | grep -q "Admin" && echo "✅ /admin (dashboard) OK"
+          kill $SERVER_PID
+
+  # ─────────────────────────────────────────────────────────────────────────
+  # Job 2: Deploy static frontend to GitHub Pages
+  # NOTE: GitHub Pages only serves static files — the Node.js backend
+  # (server.js, admin-routes.js) must be hosted on a Node-capable platform
+  # such as Railway, Render, or a VPS for full admin functionality.
+  # The Pages deployment serves the SIH frontend files for reference/preview.
+  # ─────────────────────────────────────────────────────────────────────────
   deploy:
+    name: Deploy Frontend to GitHub Pages
+    needs: build-check
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}

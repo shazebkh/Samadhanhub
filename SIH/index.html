@@ -33,7 +33,35 @@
         <span class="btn-icon">➕</span>
         <span id="btn-add-text">Report Problem</span>
       </button>
+
+      <!-- Exit / Back to Home -->
+      <a href="/"
+         id="btn-exit-app"
+         title="Back to Home"
+         style="
+           display: inline-flex;
+           align-items: center;
+           gap: 0.4rem;
+           padding: 0.55rem 1rem;
+           border-radius: var(--border-radius-md);
+           border: 1px solid var(--border-color);
+           background: transparent;
+           color: var(--text-secondary);
+           font-family: inherit;
+           font-size: 0.85rem;
+           font-weight: 600;
+           text-decoration: none;
+           cursor: pointer;
+           transition: color 0.2s, border-color 0.2s, background 0.2s;
+           white-space: nowrap;
+         "
+         onmouseover="this.style.color='var(--accent-teal)';this.style.borderColor='rgba(20,184,166,0.4)';this.style.background='rgba(20,184,166,0.08)'"
+         onmouseout="this.style.color='var(--text-secondary)';this.style.borderColor='var(--border-color)';this.style.background='transparent'"
+      >
+        🚪 <span>Exit</span>
+      </a>
     </div>
+
   </header>
 
   <!-- Dashboard Container -->

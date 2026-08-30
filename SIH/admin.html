@@ -1,0 +1,637 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Dashboard — SamadhanHub</title>
+  <meta name="description" content="SamadhanHub Admin Control Panel — Restricted access.">
+  <meta name="robots" content="noindex, nofollow">
+
+  <!-- Admin CSS -->
+  <link rel="stylesheet" href="admin.css">
+</head>
+<body>
+
+  <!-- =====================================================================
+       LOGIN SCREEN
+       ===================================================================== -->
+  <div id="login-screen">
+    <div class="login-card">
+      <div class="login-brand">
+        <span class="login-brand-icon">🤝</span>
+        <h1>SamadhanHub</h1>
+        <p>Community Problem Reporting Platform</p>
+        <span class="admin-badge">🔐 ADMIN ACCESS ONLY</span>
+      </div>
+
+      <div class="login-error" id="login-error">
+        <span>⚠️</span>
+        <span id="login-error-msg">Invalid credentials. Please try again.</span>
+      </div>
+
+      <form id="login-form" onsubmit="handleLogin(event)">
+        <div class="form-field">
+          <label for="input-username">Username</label>
+          <input
+            type="text"
+            id="input-username"
+            placeholder="admin.samadhan"
+            autocomplete="username"
+            required
+          >
+        </div>
+
+        <div class="form-field">
+          <label for="input-password">Password</label>
+          <input
+            type="password"
+            id="input-password"
+            placeholder="••••••••"
+            autocomplete="current-password"
+            required
+          >
+        </div>
+
+        <button type="submit" class="btn btn-teal" id="btn-login">
+          <span id="btn-login-text">Sign In to Admin Panel</span>
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- =====================================================================
+       ADMIN DASHBOARD
+       ===================================================================== -->
+  <div id="admin-dashboard">
+
+    <!-- Header -->
+    <header class="admin-header">
+      <div class="admin-header-brand">
+        <span class="logo-emoji">🤝</span>
+        <div>
+          <h2>SamadhanHub Admin</h2>
+          <span>Control Room</span>
+        </div>
+      </div>
+
+      <div class="admin-header-right">
+        <div class="live-badge" id="live-badge">
+          <div class="live-dot"></div>
+          LIVE
+        </div>
+
+        <div class="admin-user-chip" id="user-chip">
+          <div class="user-avatar">👤</div>
+          <span id="admin-username-display">admin</span>
+        </div>
+
+        <button class="btn btn-ghost" id="btn-logout" onclick="handleLogout()">
+          🚪 Logout
+        </button>
+      </div>
+    </header>
+
+    <!-- Stats Bar -->
+    <div class="stats-bar">
+      <div class="stat-chip blue">
+        <span class="stat-icon">📋</span>
+        <div class="stat-info">
+          <div class="stat-num blue" id="stat-total">—</div>
+          <div class="stat-lbl">Total Reports</div>
+        </div>
+      </div>
+      <div class="stat-chip coral">
+        <span class="stat-icon">🔥</span>
+        <div class="stat-info">
+          <div class="stat-num coral" id="stat-critical">—</div>
+          <div class="stat-lbl">Critical (30+ votes)</div>
+        </div>
+      </div>
+      <div class="stat-chip green">
+        <span class="stat-icon">✅</span>
+        <div class="stat-info">
+          <div class="stat-num green" id="stat-solved">—</div>
+          <div class="stat-lbl">Resolved</div>
+        </div>
+      </div>
+      <div class="stat-chip yellow">
+        <span class="stat-icon">⏳</span>
+        <div class="stat-info">
+          <div class="stat-num yellow" id="stat-pending">—</div>
+          <div class="stat-lbl">Pending</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Toolbar -->
+    <div class="admin-toolbar">
+      <div class="toolbar-title">
+        Problem Reports
+        <span id="visible-count"></span>
+      </div>
+
+      <!-- Category filters -->
+      <div class="filter-chips">
+        <button class="filter-chip active" data-filter="all" onclick="setFilter('all', this)">All</button>
+        <button class="filter-chip" data-filter="unsolved" onclick="setFilter('unsolved', this)">Unsolved</button>
+        <button class="filter-chip red" data-filter="critical" onclick="setFilter('critical', this)">🔥 Critical</button>
+        <button class="filter-chip" data-filter="road" onclick="setFilter('road', this)">🛣️ Roads</button>
+        <button class="filter-chip" data-filter="electricity" onclick="setFilter('electricity', this)">⚡ Electricity</button>
+        <button class="filter-chip" data-filter="wildlife" onclick="setFilter('wildlife', this)">🦁 Wildlife</button>
+        <button class="filter-chip" data-filter="education" onclick="setFilter('education', this)">🎓 Education</button>
+      </div>
+
+      <!-- Search -->
+      <div class="search-box">
+        <span>🔍</span>
+        <input
+          type="text"
+          id="admin-search"
+          placeholder="Search problems..."
+          oninput="renderProblems()"
+        >
+      </div>
+
+      <div class="last-updated" id="last-updated">
+        <span>🕐</span>
+        <span id="last-updated-text">Refreshing...</span>
+      </div>
+    </div>
+
+    <!-- Problems Grid -->
+    <div class="problems-grid" id="problems-grid">
+      <div class="spinner-overlay">
+        <div class="spinner"></div>
+        <p>Loading problems...</p>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- =====================================================================
+       DELETE CONFIRM DIALOG
+       ===================================================================== -->
+  <div class="confirm-overlay" id="confirm-overlay">
+    <div class="confirm-dialog">
+      <div class="confirm-icon">🗑️</div>
+      <h3>Delete This Problem?</h3>
+      <p id="confirm-caption">This will permanently remove the problem report from the database. This action cannot be undone.</p>
+      <div class="confirm-btns">
+        <button class="btn btn-ghost" onclick="cancelDelete()">Cancel</button>
+        <button class="btn btn-red btn-delete" id="btn-confirm-delete" onclick="confirmDelete()">
+          🗑️ Delete Permanently
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div class="admin-toast" id="admin-toast">
+    <span id="toast-emoji">✅</span>
+    <span id="toast-msg">Action completed</span>
+  </div>
+
+  <!-- =====================================================================
+       ADMIN JAVASCRIPT
+       ===================================================================== -->
+  <script>
+    'use strict';
+
+    // -----------------------------------------------------------------------
+    // Config
+    // -----------------------------------------------------------------------
+    const API_BASE     = '/api/admin';
+    const POLL_INTERVAL = 5000; // 5 seconds real-time refresh
+
+    // -----------------------------------------------------------------------
+    // State
+    // -----------------------------------------------------------------------
+    let adminToken       = null;
+    let allProblems      = [];
+    let activeFilter     = 'all';
+    let pollTimer        = null;
+    let pendingDeleteId  = null;
+    let toastTimer       = null;
+
+    // -----------------------------------------------------------------------
+    // Init — check for persisted session; redirect to landing if none found
+    // -----------------------------------------------------------------------
+    window.addEventListener('DOMContentLoaded', () => {
+      const savedToken = sessionStorage.getItem('admin_token');
+      if (savedToken) {
+        // Verify token is still valid on the server
+        verifyToken(savedToken);
+      } else {
+        // No session — send user back to the role-selection landing page
+        window.location.replace('/');
+      }
+    });
+
+    async function verifyToken(token) {
+      try {
+        const res = await fetch(`${API_BASE}/verify`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (res.ok) {
+          const data = await res.json();
+          adminToken = token;
+          showDashboard(data.username);
+        } else {
+          // Token invalid/expired — go back to role-selection page
+          sessionStorage.removeItem('admin_token');
+          window.location.replace('/');
+        }
+      } catch (err) {
+        console.warn('[Admin] Token verification failed:', err);
+      }
+    }
+
+    // -----------------------------------------------------------------------
+    // Login
+    // -----------------------------------------------------------------------
+    async function handleLogin(event) {
+      event.preventDefault();
+
+      const username = document.getElementById('input-username').value.trim();
+      const password = document.getElementById('input-password').value;
+      const btn      = document.getElementById('btn-login');
+      const btnText  = document.getElementById('btn-login-text');
+
+      // Loading state
+      btn.disabled   = true;
+      btnText.textContent = '⏳ Signing in...';
+      hideLoginError();
+
+      try {
+        const res = await fetch(`${API_BASE}/login`, {
+          method:  'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body:    JSON.stringify({ username, password })
+        });
+
+        const data = await res.json();
+
+        if (!res.ok) {
+          showLoginError(data.error || 'Login failed. Check your credentials.');
+          return;
+        }
+
+        adminToken = data.token;
+        sessionStorage.setItem('admin_token', adminToken);
+        showDashboard(data.username);
+
+      } catch (err) {
+        showLoginError('Cannot reach server. Make sure the server is running.');
+      } finally {
+        btn.disabled    = false;
+        btnText.textContent = 'Sign In to Admin Panel';
+      }
+    }
+
+    function showLoginError(msg) {
+      const el = document.getElementById('login-error');
+      document.getElementById('login-error-msg').textContent = msg;
+      el.classList.add('show');
+    }
+
+    function hideLoginError() {
+      document.getElementById('login-error').classList.remove('show');
+    }
+
+    // -----------------------------------------------------------------------
+    // Show / Hide Dashboard vs Login
+    // -----------------------------------------------------------------------
+    function showDashboard(username) {
+      document.getElementById('login-screen').classList.add('hidden');
+      document.getElementById('admin-dashboard').classList.add('visible');
+      document.getElementById('admin-username-display').textContent = username;
+      startPolling();
+    }
+
+    function showLogin() {
+      document.getElementById('login-screen').classList.remove('hidden');
+      document.getElementById('admin-dashboard').classList.remove('visible');
+      stopPolling();
+    }
+
+    // -----------------------------------------------------------------------
+    // Logout
+    // -----------------------------------------------------------------------
+    async function handleLogout() {
+      try {
+        await fetch(`${API_BASE}/logout`, {
+          method:  'POST',
+          headers: { 'Authorization': `Bearer ${adminToken}` }
+        });
+      } catch (e) { /* ignore */ }
+
+      adminToken = null;
+      sessionStorage.removeItem('admin_token');
+
+      // Redirect to the unified role-selection landing page
+      window.location.href = '/';
+    }
+
+    // -----------------------------------------------------------------------
+    // Real-time Polling
+    // -----------------------------------------------------------------------
+    function startPolling() {
+      fetchProblems(); // immediate first fetch
+      pollTimer = setInterval(fetchProblems, POLL_INTERVAL);
+    }
+
+    function stopPolling() {
+      if (pollTimer) { clearInterval(pollTimer); pollTimer = null; }
+    }
+
+    async function fetchProblems() {
+      if (!adminToken) return;
+      try {
+        const res = await fetch(`${API_BASE}/problems`, {
+          headers: { 'Authorization': `Bearer ${adminToken}` }
+        });
+
+        if (res.status === 401) {
+          // Token expired
+          showToast('error', '⏰ Session expired. Please log in again.');
+          handleLogout();
+          return;
+        }
+
+        const data = await res.json();
+
+        allProblems = data.problems || [];
+        updateStats(data.meta);
+        renderProblems();
+        updateLastUpdated();
+
+      } catch (err) {
+        console.error('[Admin] Fetch failed:', err);
+        document.getElementById('live-badge').style.opacity = '0.4';
+      }
+    }
+
+    function updateStats(meta) {
+      if (!meta) return;
+      animateCount('stat-total',    meta.total);
+      animateCount('stat-critical', meta.critical);
+      animateCount('stat-solved',   meta.solved);
+      animateCount('stat-pending',  meta.pending);
+    }
+
+    function animateCount(elId, target) {
+      const el      = document.getElementById(elId);
+      const current = parseInt(el.textContent) || 0;
+      if (current === target) return;
+      el.textContent = target;
+    }
+
+    function updateLastUpdated() {
+      const now = new Date();
+      const timeStr = now.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+      document.getElementById('last-updated-text').textContent = `Updated at ${timeStr}`;
+      document.getElementById('live-badge').style.opacity = '1';
+    }
+
+    // -----------------------------------------------------------------------
+    // Filtering & Rendering
+    // -----------------------------------------------------------------------
+    function setFilter(filter, el) {
+      activeFilter = filter;
+      document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+      el.classList.add('active');
+      renderProblems();
+    }
+
+    function getFilteredProblems() {
+      const searchQuery = (document.getElementById('admin-search')?.value || '').toLowerCase().trim();
+
+      return allProblems.filter(p => {
+        // Filter by active category/status
+        let passFilter = false;
+        if (activeFilter === 'all')      passFilter = true;
+        else if (activeFilter === 'unsolved') passFilter = !p.solved;
+        else if (activeFilter === 'critical') passFilter = (p.likes || 0) >= 30;
+        else passFilter = p.category === activeFilter;
+
+        // Filter by search query
+        if (!passFilter) return false;
+        if (!searchQuery) return true;
+        const haystack = `${p.caption} ${p.locationName} ${p.category}`.toLowerCase();
+        return haystack.includes(searchQuery);
+      });
+    }
+
+    function renderProblems() {
+      const grid     = document.getElementById('problems-grid');
+      const filtered = getFilteredProblems();
+
+      document.getElementById('visible-count').textContent =
+        `(${filtered.length} of ${allProblems.length})`;
+
+      if (filtered.length === 0) {
+        grid.innerHTML = `
+          <div class="empty-state">
+            <span class="emoji">🔍</span>
+            <p>No problems found matching the current filter.</p>
+          </div>`;
+        return;
+      }
+
+      grid.innerHTML = filtered.map(p => buildCard(p)).join('');
+    }
+
+    function buildCard(p) {
+      const category = p.category || 'general';
+      const timeAgo  = formatTimeAgo(p.timestamp);
+      const isSolved = !!p.solved;
+      const isCrit   = (p.likes || 0) >= 30;
+
+      const mediaHtml = p.mediaUrl
+        ? `<div class="card-media"><img src="${escHtml(p.mediaUrl)}" alt="Problem media" loading="lazy" onerror="this.parentElement.innerHTML='📸'"></div>`
+        : `<div class="card-media" style="font-size:2.5rem;">${getCategoryEmoji(category)}</div>`;
+
+      return `
+        <div class="problem-card${isSolved ? ' solved' : ''}" id="card-${escHtml(p.id)}" data-id="${escHtml(p.id)}">
+          ${mediaHtml}
+          <div class="card-body">
+            <div class="card-meta">
+              <span class="category-pill">${getCategoryEmoji(category)} ${escHtml(category)}</span>
+              ${isCrit ? '<span class="category-pill" style="background:var(--accent-coral-dim);border-color:rgba(255,127,80,0.35);color:var(--accent-coral);">🔥 Critical</span>' : ''}
+              <span class="problem-id">${escHtml(p.id)}</span>
+            </div>
+            <div class="card-caption">${escHtml(p.caption)}</div>
+            <div class="card-location">📍 ${escHtml(p.locationName || 'Unknown location')}</div>
+            <div class="card-stats">
+              <span class="card-stat red">👍 ${p.likes || 0}</span>
+              <span class="card-stat">👎 ${p.dislikes || 0}</span>
+              <span class="card-stat">💬 ${(p.suggestions || []).length}</span>
+            </div>
+            <div class="card-time">🕐 ${timeAgo}</div>
+          </div>
+          <div class="card-actions">
+            <button class="btn btn-green" onclick="toggleSolved('${escHtml(p.id)}', ${isSolved})">
+              ${isSolved ? '🔄 Reopen' : '✅ Resolve'}
+            </button>
+            <button class="btn btn-delete" onclick="requestDelete('${escHtml(p.id)}', '${escHtml((p.caption || '').substring(0,60))}')">
+              🗑️ Delete
+            </button>
+          </div>
+        </div>`;
+    }
+
+    // -----------------------------------------------------------------------
+    // Toggle Solved
+    // -----------------------------------------------------------------------
+    async function toggleSolved(problemId, currentSolved) {
+      try {
+        const res = await fetch(`${API_BASE}/problems/${problemId}/solve`, {
+          method:  'POST',
+          headers: { 'Authorization': `Bearer ${adminToken}` }
+        });
+
+        if (!res.ok) throw new Error('Server error');
+
+        const updated = await res.json();
+
+        // Update local state
+        const idx = allProblems.findIndex(p => p.id === problemId);
+        if (idx !== -1) allProblems[idx].solved = updated.solved;
+
+        renderProblems();
+        showToast('success', updated.solved ? '✅ Problem marked as resolved.' : '🔄 Problem reopened.');
+
+      } catch (err) {
+        showToast('error', '❌ Failed to update status. Try again.');
+      }
+    }
+
+    // -----------------------------------------------------------------------
+    // Delete — with confirmation
+    // -----------------------------------------------------------------------
+    function requestDelete(problemId, captionSnippet) {
+      pendingDeleteId = problemId;
+      document.getElementById('confirm-caption').textContent =
+        `"${captionSnippet}..." — This will permanently remove the problem report from the database. This action cannot be undone.`;
+      document.getElementById('confirm-overlay').classList.add('visible');
+    }
+
+    function cancelDelete() {
+      pendingDeleteId = null;
+      document.getElementById('confirm-overlay').classList.remove('visible');
+    }
+
+    async function confirmDelete() {
+      if (!pendingDeleteId) return;
+
+      const id         = pendingDeleteId;
+      const confirmBtn = document.getElementById('btn-confirm-delete');
+
+      // Close dialog first
+      document.getElementById('confirm-overlay').classList.remove('visible');
+      pendingDeleteId = null;
+
+      // Animate card out
+      const cardEl = document.getElementById(`card-${id}`);
+      if (cardEl) cardEl.classList.add('deleting');
+
+      confirmBtn.disabled    = true;
+      confirmBtn.textContent = '⏳ Deleting...';
+
+      try {
+        const res = await fetch(`${API_BASE}/problems/${id}`, {
+          method:  'DELETE',
+          headers: { 'Authorization': `Bearer ${adminToken}` }
+        });
+
+        if (!res.ok) throw new Error('Delete failed');
+
+        // Remove from local state
+        allProblems = allProblems.filter(p => p.id !== id);
+
+        setTimeout(() => {
+          renderProblems();
+          updateStats({
+            total:    allProblems.length,
+            solved:   allProblems.filter(p => p.solved).length,
+            critical: allProblems.filter(p => (p.likes||0) >= 30).length,
+            pending:  allProblems.filter(p => !p.solved).length
+          });
+        }, 350); // Wait for card animation
+
+        showToast('success', '🗑️ Problem deleted from database.');
+
+      } catch (err) {
+        showToast('error', '❌ Delete failed. Please try again.');
+        // Restore card
+        if (cardEl) cardEl.classList.remove('deleting');
+      } finally {
+        confirmBtn.disabled    = false;
+        confirmBtn.textContent = '🗑️ Delete Permanently';
+      }
+    }
+
+    // -----------------------------------------------------------------------
+    // Toast Notifications
+    // -----------------------------------------------------------------------
+    function showToast(type, message) {
+      const toast   = document.getElementById('admin-toast');
+      const emojiEl = document.getElementById('toast-emoji');
+      const msgEl   = document.getElementById('toast-msg');
+
+      // Set type class
+      toast.className = `admin-toast ${type}`;
+      msgEl.textContent = message;
+
+      // Show
+      toast.classList.add('show');
+
+      // Auto-hide after 3s
+      if (toastTimer) clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => toast.classList.remove('show'), 3000);
+    }
+
+    // -----------------------------------------------------------------------
+    // Utilities
+    // -----------------------------------------------------------------------
+    function escHtml(str) {
+      if (!str) return '';
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+    }
+
+    function formatTimeAgo(isoString) {
+      if (!isoString) return 'Unknown';
+      const diff = Date.now() - new Date(isoString).getTime();
+      const m = Math.floor(diff / 60000);
+      if (m < 1)   return 'Just now';
+      if (m < 60)  return `${m}m ago`;
+      const h = Math.floor(m / 60);
+      if (h < 24)  return `${h}h ago`;
+      const d = Math.floor(h / 24);
+      return `${d}d ago`;
+    }
+
+    function getCategoryEmoji(category) {
+      const map = {
+        road:        '🛣️',
+        electricity: '⚡',
+        education:   '🎓',
+        social:      '🚸',
+        transport:   '🚌',
+        marine:      '🚢',
+        forest:      '🌳',
+        wildlife:    '🦁',
+        tribal:      '🛖',
+        general:     '📋'
+      };
+      return map[category] || '📋';
+    }
+  </script>
+
+</body>
+</html>

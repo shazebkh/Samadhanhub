@@ -2,6 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const fs = require('fs');
 const path = require('path');
+const adminRouter = require('./admin-routes');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -9,7 +10,32 @@ const DB_FILE = path.join(__dirname, 'problems.json');
 
 app.use(cors());
 app.use(express.json({ limit: '10mb' })); // support large image data URLs
-app.use(express.static(__dirname));
+
+// -------------------------------------------------------------------
+// Explicit routes — declared BEFORE express.static so they take priority
+// -------------------------------------------------------------------
+
+// Admin API — protected routes
+app.use('/api/admin', adminRouter);
+
+// Unified entry point: role selector (local user vs admin)
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'login.html'));
+});
+
+// Main SamadhanHub community app
+app.get('/app', (req, res) => {
+  res.sendFile(path.join(__dirname, 'index.html'));
+});
+
+// Admin dashboard page
+app.get('/admin', (req, res) => {
+  res.sendFile(path.join(__dirname, 'admin.html'));
+});
+
+// Serve all other static assets (CSS, JS, images, etc.) — index:false prevents
+// express from auto-serving index.html at /
+app.use(express.static(__dirname, { index: false }));
 
 // Seed problems if DB file doesn't exist
 const INITIAL_SEED = [
@@ -194,7 +220,7 @@ app.post('/api/problems/:id/solve', (req, res) => {
   res.status(404).json({ error: "Problem report not found" });
 });
 
-// Serve frontend client
+// Serve frontend client (fallback for assets)
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'index.html'));
 });
