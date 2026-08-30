@@ -1,0 +1,27 @@
+# render.yaml — Render.com deployment config for SamadhanHub
+# ============================================================
+# SETUP (one-time, ~5 minutes):
+# 1. Go to https://dashboard.render.com → New → Web Service
+# 2. Connect your GitHub repo (shazebkh/Samadhanhub)
+# 3. Render will auto-detect this file and configure the service.
+# 4. After the service is created, go to Settings → Deploy Hook
+#    Copy the Deploy Hook URL.
+# 5. In your GitHub repo → Settings → Secrets → Actions
+#    Add a secret named:  RENDER_DEPLOY_HOOK
+#    Value: the URL you just copied.
+# 6. From now on, every push to main auto-deploys to Render. ✅
+
+services:
+  - type: web
+    name: samadhanhub
+    runtime: node
+    rootDir: SIH
+    buildCommand: npm install
+    startCommand: node server.js
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+    healthCheckPath: /
+    autoDeploy: true
