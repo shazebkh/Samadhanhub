@@ -43,44 +43,5 @@ To make the system accessible to everyone, the interface is designed with toddle
 
 ---
 
-## 📂 File Architecture
 
-```
-SIH/
-├── index.html          # Semantic HTML markup, Leaflet styles, modal structures
-├── index.css           # Custom theme variables, sticky layouts, sticky overlays
-├── app.js              # Localization mapper, map renderers, voting math, form submit
-├── database.js         # REST fetch client with fallback LocalStorage persistence
-├── server.js           # Express/Node server, Google Geocode proxy, REST voting routes
-├── package.json        # Describes node dependencies (express, cors)
-├── problems.json       # File-based JSON database (auto-created with sample seed cards)
-└── README.md           # Documentation (This file)
-```
 
----
-
-## 🛠️ Installation & Execution
-
-### Prerequisites
-Make sure you have Node.js and npm installed on your system.
-
-### Setup Instructions
-1. Open your terminal in the project directory `SIH`.
-2. Install express and cors dependencies:
-   ```bash
-   npm install
-   ```
-3. Start the application backend server:
-   ```bash
-   node server.js
-   ```
-4. Access the portal in your browser:
-   - Open **`http://localhost:3000`**.
-   - The server will automatically create `problems.json` seeded with three sample reports.
-
----
-
-## 🔒 API Key & Billing Configurations
-If you deploy this application in a production environment:
-1. To use Google Maps geocoder instead of the Nominatim backup, ensure **Billing is enabled** on your Google Cloud Console project associated with the key `AIzaSyDQHmQdfxzw6bPRvUScyf_cgBeW6jWvK_g`.
-2. The key is managed securely inside **`server.js`**; never copy this key into `app.js` or frontend files.
